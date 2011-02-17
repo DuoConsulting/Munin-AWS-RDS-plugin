@@ -1,0 +1,200 @@
+#!/usr/bin/perl -w
+#
+# Copyright (C) 2011 Scott Frazer
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; version 2 dated June,
+# 1991.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#
+
+use strict;
+use Switch;
+
+my $DEBUG = 0;
+my $MAXLABEL = 20;
+
+my $dbinstance = $ENV{dbinstance}      || undef;
+my $output = "";
+my $date = "";
+my $time = "";
+my $avg = "";
+my $min = "";
+my $max = "";
+my $unit = "";
+
+my $graphtitle = "";
+my $graphbase = "";
+my $graphvlabel = "";
+my $graphcategory = "";
+my $graphinfo = "";
+my $graphavglabel = "";
+my $graphminlabel = "";
+my $graphmaxlabel = "";
+my $stat = "";
+my $response;
+
+if ($0 =~ /^(?:|.*\/)aws_([^_]+)_rds_([^_]+)$/)
+{
+	$dbinstance  = $1;
+	$stat = $2;
+}
+elsif (!defined($dbinstance) || !defined($stat))
+{
+	print "# Debug: $0 -- $1\n" if $DEBUG;
+	die "# Error: couldn't understand what I'm supposed to monitor.";
+}
+
+switch ($stat) {
+	case "CPUUtilization"	{
+		$graphtitle = "CPU Usage";
+		$graphbase = "1000";
+		$graphvlabel = "%";
+		$graphcategory = "System";
+		$graphinfo = "This graph shows the CPU utilization of the RDS instance";
+		$graphavglabel = "Average CPU utilization";
+		$graphminlabel = "Minimum CPU utilization";
+		$graphmaxlabel = "Maximum CPU utilization";
+	}
+	case "DatabaseConnections"	{
+		$graphtitle = "Connections";
+		$graphbase = "1000";
+		$graphvlabel = "Number of connections";
+		$graphcategory = "Mysql2";
+		$graphinfo = "Number of incoming connections to the database instance";
+		$graphavglabel = "Average Connections";
+		$graphminlabel = "Minimum Connections";
+		$graphmaxlabel = "Maximum Connections";
+	}
+	case "FreeableMemory"	{
+		$graphtitle = "Freeable Memory";
+		$graphbase = "1024";
+		$graphvlabel = "Memory in Bytes";
+		$graphcategory = "System";
+		$graphinfo = "Available memory to the database instance";
+		$graphavglabel = "Average Freeable Memory";
+		$graphminlabel = "Minimum Freeable Memory";
+		$graphmaxlabel = "Maximum Freeable Memory";
+	}
+	case "FreeStorageSpace"	{
+		$graphtitle = "Storage Free";
+		$graphbase = "1024";
+		$graphvlabel = "Storage space in bytes";
+		$graphcategory = "Disk";
+		$graphinfo = "This graph shows the Amount of free space left on the database instance";
+		$graphavglabel = "Average Free Space";
+		$graphminlabel = "Minimum Free Space";
+		$graphmaxlabel = "Maximum Free Space";
+	}
+	case "ReadIOPS"	{
+		$graphtitle = "Read IOPS";
+		$graphbase = "1000";
+		$graphvlabel = "Reads per second";
+		$graphcategory = "Mysql2";
+		$graphinfo = "This graph shows the number of Read IOPS on the database instance";
+		$graphavglabel = "Average Read IOPS";
+		$graphminlabel = "Minimum Read IOPS";
+		$graphmaxlabel = "Maximum Read IOPS";
+	}
+	case "ReadLatency"	{
+		$graphtitle = "Read Latency";
+		$graphbase = "1000";
+		$graphvlabel = "Read Latency in seconds";
+		$graphcategory = "Mysql2";
+		$graphinfo = "This graph shows the amount of latency on reads";
+		$graphavglabel = "Average Read Latency";
+		$graphminlabel = "Minimum Read Latency";
+		$graphmaxlabel = "Maximum Read Latency";
+	}
+	case "ReadThroughput"	{
+		$graphtitle = "Read Throughput";
+		$graphbase = "1024";
+		$graphvlabel = "Throughput in bytes / second";
+		$graphcategory = "Mysql2";
+		$graphinfo = "This graph shows read throughput in bytes per second";
+		$graphavglabel = "Average Read Throughput";
+		$graphminlabel = "Minimum Read Throughput";
+		$graphmaxlabel = "Maximum Read Throughput";
+	}
+	case "SwapUsage"	{
+		$graphtitle = "Swap Usage";
+		$graphbase = "1024";
+		$graphvlabel = "Swap usage in bytes";
+		$graphcategory = "System";
+		$graphinfo = "This graph shows the amount of swapfie used by the database instance";
+		$graphavglabel = "Average Swap Usage";
+		$graphminlabel = "Minimum Swap Usage";
+		$graphmaxlabel = "Maximum Swap Usage";
+	}
+	case "WriteIOPS"	{
+		$graphtitle = "Write IOPS";
+		$graphbase = "1000";
+		$graphvlabel = "Writes per second";
+		$graphcategory = "Mysql2";
+		$graphinfo = "This graph shows the number of Write IOPS on the database instance";
+		$graphavglabel = "Average Write IOPS";
+		$graphminlabel = "Minimum Write IOPS";
+		$graphmaxlabel = "Maximum Write IOPS";
+	}
+	case "WriteLatency"	{
+		$graphtitle = "Write Latency";
+		$graphbase = "1000";
+		$graphvlabel = "Write Latency in seconds";
+		$graphcategory = "Mysql2";
+		$graphinfo = "This graph shows the amount of latency on Writes";
+		$graphavglabel = "Average Write Latency";
+		$graphminlabel = "Minimum Write Latency";
+		$graphmaxlabel = "Maximum Write Latency";
+	}
+	case "WriteThroughput"	{
+		$graphtitle = "Write Throughput";
+		$graphbase = "1024";
+		$graphvlabel = "Throughput in bytes / second";
+		$graphcategory = "Mysql2";
+		$graphinfo = "This graph shows Write throughput in bytes per second";
+		$graphavglabel = "Average Write Throughput";
+		$graphminlabel = "Minimum Write Throughput";
+		$graphmaxlabel = "Maximum Write Throughput";
+	}
+
+}
+
+
+if (defined $ARGV[0] and $ARGV[0] eq "config")
+{
+	print "host_name $dbinstance\n";
+	print "graph_title $graphtitle
+graph_args --base $graphbase -l 0 
+graph_vlabel $graphvlabel
+graph_category $graphcategory
+graph_info $graphinfo
+average.label $graphavglabel
+average.draw LINE2
+average.info Average
+min.label $graphminlabel
+min.draw LINE2
+min.info Minimum
+max.label $graphmaxlabel
+max.draw LINE2
+max.info Maximum
+";
+
+	exit 0;
+}
+
+$output = `mon-get-stats $stat --period 300 --statistics "Average,Minimum,Maximum" --namespace "AWS/RDS" --dimensions "DBInstanceIdentifier=$dbinstance" | tail -1`;
+
+($date,$time,$avg,$min,$max,$unit) = split(" ", $output);
+
+print "average.value $avg\n";
+print "min.value $min\n";
+print "max.value $max\n";
